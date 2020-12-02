@@ -1,0 +1,213 @@
+#!/bin/bash
+#Name: Gauge Hartwell
+
+#My best gradingscript score was 86.
+
+#sources:
+#stackoverflow
+#Piazza
+#slack
+ 
+#gets the dimensions of the matrix
+dims()
+{
+if [[ ! -r "$datafilepath" ]]	#check for readable file, otherwise continue
+then
+	echo "no readable file" 1>/dev/stderr
+	exit 1
+fi
+if test "$#" -gt 1	#test number of arguments
+then
+	echo "invalid number of arguments" 1>/dev/stderr
+	exit 1
+else
+rows=$(cat $datafilepath | wc -l)
+cols=$(head -n 1 $datafilepath | wc -w)
+echo $rows $cols
+fi
+}
+#transposes the matrix to opposite dimensions
+transpose()
+{
+cols=$(head -n 1 $datafilepath | wc -w)
+if [[ ! -r "$datafilepath" ]]	#check for readable input
+then
+	echo "no readable file" 1>/dev/stderr
+	exit 1
+elif test "$#" -gt 1	#check for correct number of arguments
+then
+	echo "invalid number of arguments" 1>/dev/stderr
+	exit 1
+else
+for (( i=1; i<=$cols; i++))
+do
+	cut -f $i $datafilepath | tr $'\n' $'\t' | sed -e "s/\t$/\n/g"
+	#using this because it works and it allows me to focus on the rest of the assignment so that i can finish it on time
+done
+fi
+}
+#gives a 1xN matrix result with the mean of each column
+mean()
+{
+#this function currently adds all of the values it encounters to a running total (which is called "finalNum" by my trace statement)
+if [[ ! -r "$datafilepath" ]]  #check that input is readable
+then
+	echo "no readable file" 1>/dev/stderr
+	exit 1
+elif test "$#" -gt 1 #check for correct number of arguments
+then
+	echo "invalid number of arguments" 1>/dev/stderr
+	exit 1
+else
+rows=$(cat $datafilepath | wc -l)
+cols=$(head -n 1 $datafilepath | wc -w)
+counter=1
+while [ $counter -le $rows ] #counter to make loop continue through every column
+do
+	num=$(cat $datafilepath | cut -f $counter) #cut out one column per line read, based on value of the counter (incremented every loop)
+	previous=0
+	current=0
+	for i in $num	#this block gets the mean value for one column
+	do
+		previous=$current
+		current=$next
+		next=$i
+		finalNum=$(($current + $next))
+		next=$finalNum
+		echo "finalNum: $finalNum"
+		#finalNum=$(( finalnum / rows ))
+#		finalNum=(finalNum + (next / 2) * ((finalNum > 0) *2+1 )) / next
+		done
+		(( counter++ ))
+		if [[ $counter -gt $cols ]]	#if at end of row, no trailing tab
+		then
+			finalNum="$finalNum"
+		else				#if not at end of row, add a tab
+			finalNum="$finalNum\t"
+		fi
+		echo -e -n "finalNum: $finalNum"
+#division algorithm
+#(a + (b/2)*( (a>0)*2-1 )) / b
+done<$datafilepath
+fi
+}
+#adds two matrices together
+add()
+{
+rows1=$(cat $1 | wc -l) #rows of first matrix
+cols1=$(head -n 1 $1 | wc -w) #columns of first matrix
+rows2=$(cat $2 | wc -l) #rows of second matrix
+cols2=$(head -n 1 $2 | wc -w) #columns of second matrix
+if [[ ! -r "$1" ]] #check for readable file in first argument
+then
+	echo "no readable file" 1>/dev/stderr
+	exit 1
+elif [[ ! -r "$2" ]] #check for readable file in second argument
+then
+	echo "no readable file" 1>/dev/stderr
+	exit 1
+elif [[ $rows1 -ne $rows2 ]] #check that row count matches
+then
+	echo "mismatched matrices" 1>/dev/stderr
+	exit 1
+elif [[ $cols1 -ne $cols2 ]] #check to column count matches
+then
+	echo "mismatched matrices" 1>/dev/stderr
+	exit 1
+elif test "$#" -gt 2 #make sure the currect number of arguments are passed in
+then
+	echo "invalid number of arguments" 1>/dev/stderr
+	exit 1
+else
+while read line1 <&3 && read line2 <&4
+do
+	for (( i=1;i<=$cols1;i++ ))
+	do
+		num1=$( echo -e "$line1" | cut -f $i)
+		num2=$( echo -e "$line2" | cut -f $i)
+		
+		if [[ $i -eq $cols1 ]]    #if at end of row, don't add a tab
+		then
+			output="$(( num1 + num2 ))"
+		else			  #else, add a tab
+			output="$(( num1 + num2 ))\t"
+		fi
+		echo -e -n $output
+		if [[ $i -ge $cols1 ]]
+		then
+			echo
+		fi
+	done
+done 3<$1 4<$2
+fi
+}
+#multiplies two matrices together
+multiply()
+{
+#this function has the basic structure written, but doesn't work otherwise
+#
+#I tried transposing the second file so that the same structure of add could be used
+rows=$(cat $1 | wc -l)
+cols=$(head -n 1 $2 | wc -w)
+if [[ ! -r "$1" ]]	#check that first file is readable
+then
+	echo "no readable file" 1>/dev/stderr
+	exit 1
+elif [[ ! -r "$2" ]] 	#check that second argument is readable
+then
+	echo "no readable file" 1>/dev/stderr
+	exit 1
+elif [[ $rows -ne $cols ]]
+then
+	echo "mismatched matrices" 1>/dev/stderr
+	exit 1
+elif test "$#" -gt 2
+then
+	echo "invalid number of arguments" 1>/dev/stderr
+	exit 1
+else
+m2=matrix transpose $2
+while read line1 <&3 && read line2 <&4
+do
+	for (( i=1; i<$cols; i++ ))
+	do
+	for j in line1
+	do
+	num1=$( echo -e "$line1" | cut -f $i)
+	num2=$( echo -e "$line2" | cut -f $i)
+	
+	product="$(( num1 * num2 ))"
+	echo "product: $product\t"
+	done
+	done
+	#matrix transpose $2
+	
+	#current=1
+	#while test $current -lt $cols
+	#do
+	#num1=$(echo $line1 | cut -f $current)
+	#num2=$(echo $line2 | cut -f $current)
+
+	#product="$(( num1 * num2 ))"
+	#echo "current: $current"
+	#echo $product
+	#(( current++ ))
+	#done
+trap "trapFunc" INT HUP TERM	
+done 3<$1 4<$2
+fi
+}
+trapFunc()
+{
+rm -f datafile*
+}
+
+datafilepath="datafile$$"
+if [ "$#" = "1" ]
+then
+        cat > "$datafilepath"
+elif [ "$#" = "2" ]
+then
+        datafilepath=$2
+fi
+$1 "${@:2}"
